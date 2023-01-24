@@ -66,6 +66,17 @@ const plugin: FastifyPluginAsyncJsonSchemaToTs = async (
       }
       const posts = await this.db.posts.findMany({ key: "userId", equals: id });
       posts.forEach((post) => this.db.posts.delete(post.id));
+      const subs = await this.db.users.findMany({
+        key: "subscribedToUserIds",
+        inArray: id,
+      });
+      subs.forEach((sub) =>
+        this.db.users.change(sub.id, {
+          subscribedToUserIds: sub.subscribedToUserIds.filter(
+            (subId) => subId !== id
+          ),
+        })
+      );
       return this.db.users.delete(id);
     }
   );
@@ -79,14 +90,16 @@ const plugin: FastifyPluginAsyncJsonSchemaToTs = async (
       },
     },
     async function (request, reply): Promise<UserEntity> {
-      const user = await this.db.users.findOne({
+      const subscriberId = request.body.userId;
+      const subscribeToId = request.params.id;
+      const subscriber = await this.db.users.findOne({
         key: "id",
-        equals: request.params.id,
+        equals: subscriberId,
       });
-      if (!user) throw this.httpErrors.notFound();
-      const { subscribedToUserIds } = user;
-      return this.db.users.change(request.params.id, {
-        subscribedToUserIds: [...subscribedToUserIds, request.body.userId],
+      if (!subscriber) throw this.httpErrors.notFound();
+      const { subscribedToUserIds } = subscriber;
+      return this.db.users.change(subscriberId, {
+        subscribedToUserIds: [...subscribedToUserIds, subscribeToId],
       });
     }
   );
@@ -100,19 +113,20 @@ const plugin: FastifyPluginAsyncJsonSchemaToTs = async (
       },
     },
     async function (request, reply): Promise<UserEntity> {
-      const user = await this.db.users.findOne({
+      const unsubscriberId = request.body.userId;
+      const unsubscribeFromId = request.params.id;
+      const unsub = await this.db.users.findOne({
         key: "id",
-        equals: request.params.id,
+        equals: unsubscriberId,
       });
-      if (!user) throw this.httpErrors.notFound();
-      let { subscribedToUserIds } = user;
-      const idToUnsubscribe = request.body.userId;
-      if (!subscribedToUserIds.includes(idToUnsubscribe))
+      if (!unsub) throw this.httpErrors.notFound();
+      let { subscribedToUserIds } = unsub;
+      if (!subscribedToUserIds.includes(unsubscribeFromId))
         throw this.httpErrors.badRequest();
       subscribedToUserIds = subscribedToUserIds.filter(
-        (id) => id !== idToUnsubscribe
+        (id) => id !== unsubscribeFromId
       );
-      return this.db.users.change(request.params.id, { subscribedToUserIds });
+      return this.db.users.change(unsubscriberId, { subscribedToUserIds });
     }
   );
 
