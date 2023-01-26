@@ -11,6 +11,9 @@ import {
   GraphQLNonNull,
 } from "graphql/type";
 import DB from "../../utils/DB/DB";
+import { MemberTypeEntity } from "../../utils/DB/entities/DBMemberTypes";
+import { PostEntity } from "../../utils/DB/entities/DBPosts";
+import { UserEntity } from "../../utils/DB/entities/DBUsers";
 import { graphqlBodySchema } from "./schema";
 
 const plugin: FastifyPluginAsyncJsonSchemaToTs = async (
@@ -45,7 +48,15 @@ const memberType: GraphQLObjectType = new GraphQLObjectType({
   fields: () => ({
     id: { type: GraphQLString },
     discount: { type: new GraphQLNonNull(GraphQLFloat) },
-    monthPostLimit: { type: new GraphQLNonNull(GraphQLInt) },
+    monthPostsLimit: { type: new GraphQLNonNull(GraphQLInt) },
+  }),
+});
+
+const updateMemberType: GraphQLInputObjectType = new GraphQLInputObjectType({
+  name: "UpdateMemberTypeDTO",
+  fields: () => ({
+    discount: { type: GraphQLFloat },
+    monthPostsLimit: { type: GraphQLInt },
   }),
 });
 
@@ -57,8 +68,8 @@ const postType: GraphQLObjectType = new GraphQLObjectType({
     content: { type: new GraphQLNonNull(GraphQLString) },
     author: {
       type: new GraphQLNonNull(userType),
-      resolve: (obj, args, ctx: DB) => {
-        return ctx.users.findOne({ key: "id", equals: obj.userId });
+      resolve: (post: PostEntity, args, ctx: DB) => {
+        return ctx.users.findOne({ key: "id", equals: post.userId });
       },
     },
   }),
@@ -73,6 +84,14 @@ const createPostType: GraphQLInputObjectType = new GraphQLInputObjectType({
   }),
 });
 
+const updatePostType: GraphQLInputObjectType = new GraphQLInputObjectType({
+  name: "UpdatePostDTO",
+  fields: () => ({
+    title: { type: GraphQLString },
+    content: { type: GraphQLString },
+  }),
+});
+
 const userType: GraphQLObjectType = new GraphQLObjectType({
   name: "User",
   fields: () => ({
@@ -80,16 +99,51 @@ const userType: GraphQLObjectType = new GraphQLObjectType({
     firstName: { type: new GraphQLNonNull(GraphQLString) },
     lastName: { type: new GraphQLNonNull(GraphQLString) },
     email: { type: new GraphQLNonNull(GraphQLString) },
-    profile: { type: profileType },
-    memberType: { type: memberType },
-    posts: {
-      type: new GraphQLList(postType),
-      resolve: (obj, args, ctx: DB) => {
-        return ctx.posts.findMany({ key: "userId", equals: obj.id });
+    profile: {
+      type: profileType,
+      resolve: (user: UserEntity, args, ctx: DB) => {
+        return ctx.profiles.findOne({ key: "userId", equals: user.id });
       },
     },
-    subscribedTo: { type: new GraphQLList(userType) },
-    subscribedToUser: { type: new GraphQLList(userType) },
+    memberType: {
+      type: memberType,
+      resolve: async (user: UserEntity, args, ctx: DB) => {
+        const profile = await ctx.profiles.findOne({
+          key: "userId",
+          equals: user.id,
+        });
+        return profile
+          ? ctx.memberTypes.findOne({
+              key: "id",
+              equals: profile.memberTypeId,
+            })
+          : null;
+      },
+    },
+    posts: {
+      type: new GraphQLList(postType),
+      resolve: (user: UserEntity, args, ctx: DB) => {
+        return ctx.posts.findMany({ key: "userId", equals: user.id });
+      },
+    },
+    userSubscribedTo: {
+      type: new GraphQLList(userType),
+      resolve: (user: UserEntity, args, ctx: DB) => {
+        return ctx.users.findMany({
+          key: "subscribedToUserIds",
+          inArrayAnyOf: user.subscribedToUserIds,
+        });
+      },
+    },
+    subscribedToUser: {
+      type: new GraphQLList(userType),
+      resolve: (user: UserEntity, args, ctx: DB) => {
+        return ctx.users.findMany({
+          key: "subscribedToUserIds",
+          inArray: user.id,
+        });
+      },
+    },
   }),
 });
 
@@ -99,6 +153,15 @@ const createUserType: GraphQLInputObjectType = new GraphQLInputObjectType({
     firstName: { type: new GraphQLNonNull(GraphQLString) },
     lastName: { type: new GraphQLNonNull(GraphQLString) },
     email: { type: new GraphQLNonNull(GraphQLString) },
+  }),
+});
+
+const updateUserType: GraphQLInputObjectType = new GraphQLInputObjectType({
+  name: "UpdateUserDTO",
+  fields: () => ({
+    firstName: { type: GraphQLString },
+    lastName: { type: GraphQLString },
+    email: { type: GraphQLString },
   }),
 });
 
@@ -131,6 +194,20 @@ const createProfileType: GraphQLInputObjectType = new GraphQLInputObjectType({
   }),
 });
 
+const updateProfileType: GraphQLInputObjectType = new GraphQLInputObjectType({
+  name: "UpdateProfileDTO",
+  fields: () => ({
+    avatar: { type: GraphQLString },
+    sex: { type: GraphQLString },
+    birthday: { type: GraphQLInt },
+    country: { type: GraphQLString },
+    street: { type: GraphQLString },
+    city: { type: GraphQLString },
+    userId: { type: GraphQLString },
+    memberTypeId: { type: GraphQLString },
+  }),
+});
+
 export const RootQuery = new GraphQLObjectType({
   name: "RootQueryType",
   fields: {
@@ -140,10 +217,28 @@ export const RootQuery = new GraphQLObjectType({
         return ctx.memberTypes.findMany();
       },
     },
+    memberType: {
+      type: memberType,
+      args: {
+        id: { type: GraphQLString },
+      },
+      resolve: (obj, args, ctx: DB) => {
+        return ctx.memberTypes.findOne({ key: "id", equals: args.id });
+      },
+    },
     users: {
       type: new GraphQLList(userType),
       resolve: (obj, args, ctx: DB) => {
         return ctx.users.findMany();
+      },
+    },
+    user: {
+      type: userType,
+      args: {
+        id: { type: GraphQLString },
+      },
+      resolve: (obj, args, ctx: DB) => {
+        return ctx.users.findOne({ key: "id", equals: args.id });
       },
     },
     posts: {
@@ -152,10 +247,28 @@ export const RootQuery = new GraphQLObjectType({
         return ctx.posts.findMany();
       },
     },
+    post: {
+      type: postType,
+      args: {
+        id: { type: GraphQLString },
+      },
+      resolve: (obj, args, ctx: DB) => {
+        return ctx.posts.findOne({ key: "id", equals: args.id });
+      },
+    },
     profiles: {
       type: new GraphQLList(profileType),
       resolve: (obj, args, ctx: DB) => {
         return ctx.profiles.findMany();
+      },
+    },
+    profile: {
+      type: profileType,
+      args: {
+        id: { type: GraphQLString },
+      },
+      resolve: (obj, args, ctx: DB) => {
+        return ctx.profiles.findOne({ key: "id", equals: args.id });
       },
     },
   },
@@ -191,18 +304,44 @@ const Mutations = new GraphQLObjectType({
         return ctx.posts.create(args.createPostDTO);
       },
     },
-    deleteUser: {
-      type: userType,
-      args: {},
-      async resolve(args) {
-        return "";
+    updateMemberType: {
+      type: memberType,
+      args: {
+        id: { type: new GraphQLNonNull(GraphQLString) },
+        updateMemberTypeDTO: { type: updateMemberType },
+      },
+      async resolve(memberType: MemberTypeEntity, args, ctx: DB) {
+        return ctx.memberTypes.change(args.id, args.updateMemberTypeDTO);
       },
     },
-    deleteProfile: {
+    updatePost: {
+      type: postType,
+      args: {
+        id: { type: new GraphQLNonNull(GraphQLString) },
+        updatePostDTO: { type: updatePostType },
+      },
+      async resolve(post: PostEntity, args, ctx: DB) {
+        return ctx.posts.change(args.id, args.updatePostDTO);
+      },
+    },
+    updateProfile: {
+      type: profileType,
+      args: {
+        id: { type: new GraphQLNonNull(GraphQLString) },
+        updateProfileDTO: { type: updateProfileType },
+      },
+      async resolve(_, args, ctx: DB) {
+        return ctx.profiles.change(args.id, args.updateProfileDTO);
+      },
+    },
+    updateUser: {
       type: userType,
-      args: {},
-      async resolve(args) {
-        return "";
+      args: {
+        id: { type: new GraphQLNonNull(GraphQLString) },
+        updateUserDTO: { type: updateUserType },
+      },
+      async resolve(_, args, ctx: DB) {
+        return ctx.users.change(args.id, args.updateUserDTO);
       },
     },
   },
