@@ -28,19 +28,22 @@ const plugin: FastifyPluginAsyncJsonSchemaToTs = async (
       },
     },
     async function (request, reply) {
-      if (request.body.query) {
-        const validationResult = validate(schema, parse(request.body.query), [
-          depthLimit(5),
-        ]);
-        if (validationResult.length) return validationResult[1];
-        return graphql({
-          schema,
-          source: request.body.query,
-          contextValue: this.db,
-        });
-      }
-      if (request.body.mutation)
-        return graphql({ schema, source: request.body.mutation });
+      const { query, mutation, variables } = request.body;
+      const source = query || mutation || null;
+
+      if (!source) throw this.httpErrors.badRequest();
+
+      const validationResult = validate(schema, parse(source), [depthLimit(5)]);
+
+      if (validationResult.length)
+        throw this.httpErrors.badRequest(validationResult[0].toString());
+
+      return graphql({
+        schema,
+        source,
+        variableValues: variables,
+        contextValue: this.db,
+      });
     }
   );
 };

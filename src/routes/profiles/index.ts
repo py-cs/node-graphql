@@ -81,7 +81,7 @@ const plugin: FastifyPluginAsyncJsonSchemaToTs = async (
         equals: request.params.id,
       });
       if (!profile) throw this.httpErrors.badRequest();
-      return this.db.profiles.change(request.params.id, { ...request.body });
+      return this.db.profiles.change(request.params.id, request.body);
     }
   );
 };
