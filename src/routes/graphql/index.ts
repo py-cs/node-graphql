@@ -14,6 +14,7 @@ import {
 import DB from "../../utils/DB/DB";
 import { MemberTypeEntity } from "../../utils/DB/entities/DBMemberTypes";
 import { PostEntity } from "../../utils/DB/entities/DBPosts";
+import { ProfileEntity } from "../../utils/DB/entities/DBProfiles";
 import { UserEntity } from "../../utils/DB/entities/DBUsers";
 import { graphqlBodySchema } from "./schema";
 
@@ -112,21 +113,6 @@ const userType: GraphQLObjectType = new GraphQLObjectType({
         return ctx.profiles.findOne({ key: "userId", equals: user.id });
       },
     },
-    memberType: {
-      type: memberType,
-      resolve: async (user: UserEntity, args, ctx: DB) => {
-        const profile = await ctx.profiles.findOne({
-          key: "userId",
-          equals: user.id,
-        });
-        return profile
-          ? ctx.memberTypes.findOne({
-              key: "id",
-              equals: profile.memberTypeId,
-            })
-          : null;
-      },
-    },
     posts: {
       type: new GraphQLList(postType),
       resolve: (user: UserEntity, args, ctx: DB) => {
@@ -138,7 +124,7 @@ const userType: GraphQLObjectType = new GraphQLObjectType({
       resolve: (user: UserEntity, args, ctx: DB) => {
         return ctx.users.findMany({
           key: "subscribedToUserIds",
-          inArrayAnyOf: user.subscribedToUserIds,
+          inArray: user.id,
         });
       },
     },
@@ -146,8 +132,8 @@ const userType: GraphQLObjectType = new GraphQLObjectType({
       type: new GraphQLList(userType),
       resolve: (user: UserEntity, args, ctx: DB) => {
         return ctx.users.findMany({
-          key: "subscribedToUserIds",
-          inArray: user.id,
+          key: "id",
+          equalsAnyOf: user.subscribedToUserIds,
         });
       },
     },
@@ -183,7 +169,15 @@ const profileType: GraphQLObjectType = new GraphQLObjectType({
     street: { type: new GraphQLNonNull(GraphQLString) },
     city: { type: new GraphQLNonNull(GraphQLString) },
     user: { type: new GraphQLNonNull(userType) },
-    memberType: { type: new GraphQLNonNull(memberType) },
+    memberType: {
+      type: new GraphQLNonNull(memberType),
+      resolve: async (profile: ProfileEntity, args, ctx: DB) => {
+        return ctx.memberTypes.findOne({
+          key: "id",
+          equals: profile.memberTypeId,
+        });
+      },
+    },
   }),
 });
 
@@ -349,6 +343,57 @@ const Mutations = new GraphQLObjectType({
       },
       async resolve(_, args, ctx: DB) {
         return ctx.users.change(args.id, args.updateUserDTO);
+      },
+    },
+    subscribeTo: {
+      type: userType,
+      args: {
+        userId: { type: new GraphQLNonNull(GraphQLString) },
+        subscriberId: { type: new GraphQLNonNull(GraphQLString) },
+      },
+      resolve: async (_, args, ctx: DB) => {
+        const { userId, subscriberId } = args;
+        const subscriber = await ctx.users.findOne({
+          key: "id",
+          equals: subscriberId,
+        });
+        const user = await ctx.users.findOne({ key: "id", equals: userId });
+        if (
+          user &&
+          subscriber &&
+          !user.subscribedToUserIds.includes(subscriberId)
+        ) {
+          const subscribedToUserIds = [
+            ...user.subscribedToUserIds,
+            subscriberId,
+          ];
+          console.log(userId, subscribedToUserIds);
+          return await ctx.users.change(userId, { subscribedToUserIds });
+        }
+      },
+    },
+    unsubscribeFrom: {
+      type: userType,
+      args: {
+        userId: { type: new GraphQLNonNull(GraphQLString) },
+        unsubId: { type: new GraphQLNonNull(GraphQLString) },
+      },
+      resolve: async (_, args, ctx: DB) => {
+        const { userId, unsubId } = args;
+        const unsub = await ctx.users.findOne({
+          key: "id",
+          equals: unsubId,
+        });
+        console.log(unsub);
+        const user = await ctx.users.findOne({ key: "id", equals: userId });
+        console.log(user);
+        if (user && unsub && user.subscribedToUserIds.includes(unsubId)) {
+          console.log("ready to unsub");
+          const subscribedToUserIds = user.subscribedToUserIds.filter(
+            (id) => id !== unsubId
+          );
+          return ctx.users.change(userId, { subscribedToUserIds });
+        }
       },
     },
   },
