@@ -27,7 +27,7 @@ export const UserType: GraphQLObjectType = new GraphQLObjectType({
     posts: {
       type: new GraphQLList(PostType),
       resolve: (user: UserEntity, _args, ctx: Context) => {
-        return ctx.fastify.db.posts.findMany({
+        return ctx.db.posts.findMany({
           key: "userId",
           equals: user.id,
         });
@@ -36,7 +36,7 @@ export const UserType: GraphQLObjectType = new GraphQLObjectType({
     userSubscribedTo: {
       type: new GraphQLList(UserType),
       resolve: (user: UserEntity, _args, ctx: Context) => {
-        return ctx.fastify.db.users.findMany({
+        return ctx.db.users.findMany({
           key: "subscribedToUserIds",
           inArray: user.id,
         });
@@ -45,7 +45,7 @@ export const UserType: GraphQLObjectType = new GraphQLObjectType({
     subscribedToUser: {
       type: new GraphQLList(UserType),
       resolve: (user: UserEntity, _args, ctx: Context) => {
-        return ctx.fastify.db.users.findMany({
+        return ctx.db.users.findMany({
           key: "id",
           equalsAnyOf: user.subscribedToUserIds,
         });

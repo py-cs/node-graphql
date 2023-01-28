@@ -19,7 +19,7 @@ export const Mutations = new GraphQLObjectType({
         createUserDTO: { type: CreateUserType },
       },
       async resolve(_, args, ctx: Context) {
-        return ctx.fastify.db.users.create(args.createUserDTO);
+        return ctx.db.users.create(args.createUserDTO);
       },
     },
     createProfile: {
@@ -29,15 +29,15 @@ export const Mutations = new GraphQLObjectType({
       },
       async resolve(_, args, ctx: Context) {
         const user = await ctx.userLoader.load(args.createProfileDTO.userId);
-        if (!user) throw ctx.fastify.httpErrors.badRequest("User not found");
+        if (!user)
+          throw new Error("Bad request, user with this id does not exist");
 
         const memberType = await ctx.memberTypeLoader.load(
           args.createProfileDTO.memberTypeId
         );
-        if (!memberType)
-          throw ctx.fastify.httpErrors.badRequest("Member type not found");
+        if (!memberType) throw new Error("Bad request, invalid member type");
 
-        return ctx.fastify.db.profiles.create(args.createProfileDTO);
+        return ctx.db.profiles.create(args.createProfileDTO);
       },
     },
     createPost: {
@@ -47,9 +47,10 @@ export const Mutations = new GraphQLObjectType({
       },
       async resolve(_, args, ctx: Context) {
         const user = await ctx.userLoader.load(args.createPostDTO.userId);
-        if (!user) throw ctx.fastify.httpErrors.badRequest("User not found");
+        if (!user)
+          throw new Error("Bad request, user with this id does not exist");
 
-        return ctx.fastify.db.posts.create(args.createPostDTO);
+        return ctx.db.posts.create(args.createPostDTO);
       },
     },
     updateMemberType: {
@@ -59,10 +60,13 @@ export const Mutations = new GraphQLObjectType({
         updateMemberTypeDTO: { type: UpdateMemberType },
       },
       async resolve(_, args, ctx: Context) {
-        return ctx.fastify.db.memberTypes.change(
+        const updated = await ctx.db.memberTypes.change(
           args.id,
           args.updateMemberTypeDTO
         );
+        if (!updated) throw new Error("Bad request");
+
+        return updated;
       },
     },
     updatePost: {
@@ -72,7 +76,10 @@ export const Mutations = new GraphQLObjectType({
         updatePostDTO: { type: UpdatePostType },
       },
       async resolve(_, args, ctx: Context) {
-        return ctx.fastify.db.posts.change(args.id, args.updatePostDTO);
+        const updated = await ctx.db.posts.change(args.id, args.updatePostDTO);
+        if (!updated) throw new Error("Bad request");
+
+        return updated;
       },
     },
     updateProfile: {
@@ -82,7 +89,13 @@ export const Mutations = new GraphQLObjectType({
         updateProfileDTO: { type: UpdateProfileType },
       },
       async resolve(_, args, ctx: Context) {
-        return ctx.fastify.db.profiles.change(args.id, args.updateProfileDTO);
+        const updated = await ctx.db.profiles.change(
+          args.id,
+          args.updateProfileDTO
+        );
+        if (!updated) throw new Error("Bad request");
+
+        return updated;
       },
     },
     updateUser: {
@@ -92,7 +105,10 @@ export const Mutations = new GraphQLObjectType({
         updateUserDTO: { type: UpdateUserType },
       },
       async resolve(_, args, ctx: Context) {
-        return ctx.fastify.db.users.change(args.id, args.updateUserDTO);
+        const updated = await ctx.db.users.change(args.id, args.updateUserDTO);
+        if (!updated) throw new Error("Bad request");
+
+        return updated;
       },
     },
     subscribeTo: {
@@ -114,7 +130,7 @@ export const Mutations = new GraphQLObjectType({
             ...user.subscribedToUserIds,
             subscriberId,
           ];
-          return await ctx.fastify.db.users.change(userId, {
+          return await ctx.db.users.change(userId, {
             subscribedToUserIds,
           });
         }
@@ -135,7 +151,7 @@ export const Mutations = new GraphQLObjectType({
           const subscribedToUserIds = user.subscribedToUserIds.filter(
             (id) => id !== unsubId
           );
-          return ctx.fastify.db.users.change(userId, { subscribedToUserIds });
+          return ctx.db.users.change(userId, { subscribedToUserIds });
         }
       },
     },

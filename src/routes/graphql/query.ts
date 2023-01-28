@@ -12,8 +12,7 @@ export const RootQuery = new GraphQLObjectType({
     memberTypes: {
       type: new GraphQLList(MemberType),
       resolve: (_obj, _args, ctx: Context) => {
-        console.log(ctx.fastify.db);
-        return ctx.fastify.db.memberTypes.findMany();
+        return ctx.db.memberTypes.findMany();
       },
     },
     memberType: {
@@ -28,7 +27,7 @@ export const RootQuery = new GraphQLObjectType({
     users: {
       type: new GraphQLList(UserType),
       resolve: (_obj, _args, ctx: Context) => {
-        return ctx.fastify.db.users.findMany();
+        return ctx.db.users.findMany();
       },
     },
     user: {
@@ -43,7 +42,7 @@ export const RootQuery = new GraphQLObjectType({
     posts: {
       type: new GraphQLList(PostType),
       resolve: (_obj, _args, ctx: Context) => {
-        return ctx.fastify.db.posts.findMany();
+        return ctx.db.posts.findMany();
       },
     },
     post: {
@@ -58,7 +57,7 @@ export const RootQuery = new GraphQLObjectType({
     profiles: {
       type: new GraphQLList(ProfileType),
       resolve: (_obj, _args, ctx: Context) => {
-        return ctx.fastify.db.profiles.findMany();
+        return ctx.db.profiles.findMany();
       },
     },
     profile: {
