@@ -20,7 +20,7 @@ function createLoader<
       return acc;
     }, new Map<string, T>());
 
-    return keys.map((key) => resultsMap.get(key) ?? new Error("Not found"));
+    return keys.map((key) => resultsMap.get(key) ?? null);
   };
 
   return new DataLoader(batchFn);
