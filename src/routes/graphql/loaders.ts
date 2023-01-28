@@ -1,42 +1,44 @@
 import DataLoader = require("dataloader");
 import DB from "../../utils/DB/DB";
+import DBEntity from "../../utils/DB/entities/DBEntity";
 import { MemberTypeEntity } from "../../utils/DB/entities/DBMemberTypes";
 import { PostEntity } from "../../utils/DB/entities/DBPosts";
 import { ProfileEntity } from "../../utils/DB/entities/DBProfiles";
 import { UserEntity } from "../../utils/DB/entities/DBUsers";
 
 export function getLoaders(db: DB) {
-  const memberTypeLoader = new DataLoader<string, MemberTypeEntity | null>(
-    async (keys: Readonly<string[]>) =>
-      db.memberTypes.findMany({
-        key: "id",
-        equalsAnyOf: [...keys],
-      })
+  const memberTypeLoader = createLoader<MemberTypeEntity>(db.memberTypes, "id");
+  const postLoader = createLoader<PostEntity>(db.posts, "id");
+  const userLoader = createLoader<UserEntity>(db.users, "id");
+  const profileLoader = createLoader<ProfileEntity>(db.profiles, "id");
+  const profileByUserIdLoader = createLoader<ProfileEntity>(
+    db.profiles,
+    "userId"
   );
 
-  const postLoader = new DataLoader<string, PostEntity | null>(
-    async (keys: Readonly<string[]>) =>
-      db.posts.findMany({
-        key: "id",
-        equalsAnyOf: [...keys],
-      })
-  );
+  return {
+    memberTypeLoader,
+    postLoader,
+    userLoader,
+    profileLoader,
+    profileByUserIdLoader,
+  };
+}
 
-  const userLoader = new DataLoader<string, UserEntity | null>(
-    async (keys: Readonly<string[]>) =>
-      db.users.findMany({
-        key: "id",
-        equalsAnyOf: [...keys],
-      })
-  );
+export function createLoader<
+  T extends MemberTypeEntity | UserEntity | ProfileEntity | PostEntity
+>(db: DBEntity<T, unknown, unknown>, key: keyof T) {
+  const batchFn = async (keys: Readonly<string[]>) => {
+    const results = await db.findMany({
+      key,
+      equalsAnyOf: [...keys],
+    } as any);
+    const resultsMap = results.reduce((acc, item: T) => {
+      acc.set(item.id, item);
+      return acc;
+    }, new Map<string, T>());
+    return keys.map((key) => resultsMap.get(key) ?? null);
+  };
 
-  const profileLoader = new DataLoader<string, ProfileEntity | null>(
-    async (keys: Readonly<string[]>) =>
-      db.profiles.findMany({
-        key: "id",
-        equalsAnyOf: [...keys],
-      })
-  );
-
-  return { memberTypeLoader, postLoader, userLoader, profileLoader };
+  return new DataLoader(batchFn);
 }
