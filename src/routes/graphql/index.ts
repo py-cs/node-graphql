@@ -1,5 +1,4 @@
 import { FastifyPluginAsyncJsonSchemaToTs } from "@fastify/type-provider-json-schema-to-ts";
-import { FastifyInstance } from "fastify";
 import { graphql, parse, validate } from "graphql";
 import depthLimit = require("graphql-depth-limit");
 import {
@@ -18,9 +17,8 @@ import { ProfileEntity } from "../../utils/DB/entities/DBProfiles";
 import { UserEntity } from "../../utils/DB/entities/DBUsers";
 import { getLoaders } from "./loaders";
 import { graphqlBodySchema } from "./schema";
+import { Context } from "./types/context";
 import { GraphQLUUID } from "./types/uuid";
-
-type Context = ReturnType<typeof getLoaders> & { fastify: FastifyInstance };
 
 const plugin: FastifyPluginAsyncJsonSchemaToTs = async (
   fastify
@@ -42,7 +40,7 @@ const plugin: FastifyPluginAsyncJsonSchemaToTs = async (
 
       if (validationResult.length) throw validationResult;
 
-      const contextValue = {
+      const contextValue: Context = {
         fastify,
         ...getLoaders(fastify.db),
       };
@@ -364,10 +362,8 @@ const Mutations = new GraphQLObjectType({
       },
       resolve: async (_, args, ctx: Context) => {
         const { userId, subscriberId } = args;
-        const [user, subscriber] = (await ctx.userLoader.loadMany([
-          userId,
-          subscriberId,
-        ])) as UserEntity[];
+        const user = await ctx.userLoader.load(userId);
+        const subscriber = await ctx.userLoader.load(subscriberId);
         if (
           user &&
           subscriber &&
@@ -377,7 +373,6 @@ const Mutations = new GraphQLObjectType({
             ...user.subscribedToUserIds,
             subscriberId,
           ];
-          console.log(userId, subscribedToUserIds);
           return await ctx.fastify.db.users.change(userId, {
             subscribedToUserIds,
           });
@@ -392,12 +387,10 @@ const Mutations = new GraphQLObjectType({
       },
       resolve: async (_, args, ctx: Context) => {
         const { userId, unsubId } = args;
-        const [user, unsub] = (await ctx.userLoader.loadMany([
-          userId,
-          unsubId,
-        ])) as UserEntity[];
+        const user = await ctx.userLoader.load(userId);
+        const unsub = await ctx.userLoader.load(unsubId);
+
         if (user && unsub && user.subscribedToUserIds.includes(unsubId)) {
-          console.log("ready to unsub");
           const subscribedToUserIds = user.subscribedToUserIds.filter(
             (id) => id !== unsubId
           );
