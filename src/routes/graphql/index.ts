@@ -18,6 +18,7 @@ import { ProfileEntity } from "../../utils/DB/entities/DBProfiles";
 import { UserEntity } from "../../utils/DB/entities/DBUsers";
 import { getLoaders } from "./loaders";
 import { graphqlBodySchema } from "./schema";
+import { GraphQLUUID } from "./types/uuid";
 
 type Context = ReturnType<typeof getLoaders> & { fastify: FastifyInstance };
 
@@ -33,14 +34,13 @@ const plugin: FastifyPluginAsyncJsonSchemaToTs = async (
     },
     async function (request, reply) {
       const { query, mutation, variables } = request.body;
-      const source = query || mutation || null;
+      const source: string | null = query || mutation || null;
 
       if (!source) throw this.httpErrors.badRequest();
 
       const validationResult = validate(schema, parse(source), [depthLimit(5)]);
 
-      if (validationResult.length)
-        throw this.httpErrors.badRequest(validationResult[0].toString());
+      if (validationResult.length) throw validationResult;
 
       const contextValue = {
         fastify,
@@ -79,7 +79,7 @@ const updateMemberType: GraphQLInputObjectType = new GraphQLInputObjectType({
 const postType: GraphQLObjectType = new GraphQLObjectType({
   name: "Post",
   fields: () => ({
-    id: { type: GraphQLString },
+    id: { type: GraphQLUUID },
     title: { type: new GraphQLNonNull(GraphQLString) },
     content: { type: new GraphQLNonNull(GraphQLString) },
     author: {
@@ -96,7 +96,7 @@ const createPostType: GraphQLInputObjectType = new GraphQLInputObjectType({
   fields: () => ({
     title: { type: new GraphQLNonNull(GraphQLString) },
     content: { type: new GraphQLNonNull(GraphQLString) },
-    userId: { type: new GraphQLNonNull(GraphQLString) },
+    userId: { type: new GraphQLNonNull(GraphQLUUID) },
   }),
 });
 
@@ -111,7 +111,7 @@ const updatePostType: GraphQLInputObjectType = new GraphQLInputObjectType({
 const userType: GraphQLObjectType = new GraphQLObjectType({
   name: "User",
   fields: () => ({
-    id: { type: GraphQLString },
+    id: { type: GraphQLUUID },
     firstName: { type: new GraphQLNonNull(GraphQLString) },
     lastName: { type: new GraphQLNonNull(GraphQLString) },
     email: { type: new GraphQLNonNull(GraphQLString) },
@@ -175,7 +175,7 @@ const updateUserType: GraphQLInputObjectType = new GraphQLInputObjectType({
 const profileType: GraphQLObjectType = new GraphQLObjectType({
   name: "Profile",
   fields: () => ({
-    id: { type: GraphQLString },
+    id: { type: GraphQLUUID },
     avatar: { type: new GraphQLNonNull(GraphQLString) },
     sex: { type: new GraphQLNonNull(GraphQLString) },
     birthday: { type: new GraphQLNonNull(GraphQLInt) },
@@ -205,7 +205,7 @@ const createProfileType: GraphQLInputObjectType = new GraphQLInputObjectType({
     country: { type: new GraphQLNonNull(GraphQLString) },
     street: { type: new GraphQLNonNull(GraphQLString) },
     city: { type: new GraphQLNonNull(GraphQLString) },
-    userId: { type: new GraphQLNonNull(GraphQLString) },
+    userId: { type: new GraphQLNonNull(GraphQLUUID) },
     memberTypeId: { type: new GraphQLNonNull(GraphQLString) },
   }),
 });
@@ -219,7 +219,7 @@ const updateProfileType: GraphQLInputObjectType = new GraphQLInputObjectType({
     country: { type: GraphQLString },
     street: { type: GraphQLString },
     city: { type: GraphQLString },
-    userId: { type: GraphQLString },
+    userId: { type: GraphQLUUID },
     memberTypeId: { type: GraphQLString },
   }),
 });
@@ -255,7 +255,7 @@ export const RootQuery = new GraphQLObjectType({
     user: {
       type: userType,
       args: {
-        id: { type: GraphQLString },
+        id: { type: GraphQLUUID },
       },
       resolve: (obj, args, ctx: Context) => {
         // return ctx.fastify.db.users.findOne({ key: "id", equals: args.id });
@@ -271,7 +271,7 @@ export const RootQuery = new GraphQLObjectType({
     post: {
       type: postType,
       args: {
-        id: { type: GraphQLString },
+        id: { type: GraphQLUUID },
       },
       resolve: (obj, args, ctx: Context) => {
         // return ctx.fastify.db.posts.findOne({ key: "id", equals: args.id });
@@ -287,7 +287,7 @@ export const RootQuery = new GraphQLObjectType({
     profile: {
       type: profileType,
       args: {
-        id: { type: GraphQLString },
+        id: { type: GraphQLUUID },
       },
       resolve: (obj, args, ctx: Context) => {
         // return ctx.fastify.db.profiles.findOne({ key: "id", equals: args.id });
@@ -343,7 +343,7 @@ const Mutations = new GraphQLObjectType({
     updatePost: {
       type: postType,
       args: {
-        id: { type: new GraphQLNonNull(GraphQLString) },
+        id: { type: new GraphQLNonNull(GraphQLUUID) },
         updatePostDTO: { type: updatePostType },
       },
       async resolve(post: PostEntity, args, ctx: Context) {
@@ -353,7 +353,7 @@ const Mutations = new GraphQLObjectType({
     updateProfile: {
       type: profileType,
       args: {
-        id: { type: new GraphQLNonNull(GraphQLString) },
+        id: { type: new GraphQLNonNull(GraphQLUUID) },
         updateProfileDTO: { type: updateProfileType },
       },
       async resolve(_, args, ctx: Context) {
@@ -363,7 +363,7 @@ const Mutations = new GraphQLObjectType({
     updateUser: {
       type: userType,
       args: {
-        id: { type: new GraphQLNonNull(GraphQLString) },
+        id: { type: new GraphQLNonNull(GraphQLUUID) },
         updateUserDTO: { type: updateUserType },
       },
       async resolve(_, args, ctx: Context) {
@@ -373,8 +373,8 @@ const Mutations = new GraphQLObjectType({
     subscribeTo: {
       type: userType,
       args: {
-        userId: { type: new GraphQLNonNull(GraphQLString) },
-        subscriberId: { type: new GraphQLNonNull(GraphQLString) },
+        userId: { type: new GraphQLNonNull(GraphQLUUID) },
+        subscriberId: { type: new GraphQLNonNull(GraphQLUUID) },
       },
       resolve: async (_, args, ctx: Context) => {
         const { userId, subscriberId } = args;
@@ -409,8 +409,8 @@ const Mutations = new GraphQLObjectType({
     unsubscribeFrom: {
       type: userType,
       args: {
-        userId: { type: new GraphQLNonNull(GraphQLString) },
-        unsubId: { type: new GraphQLNonNull(GraphQLString) },
+        userId: { type: new GraphQLNonNull(GraphQLUUID) },
+        unsubId: { type: new GraphQLNonNull(GraphQLUUID) },
       },
       resolve: async (_, args, ctx: Context) => {
         const { userId, unsubId } = args;
@@ -422,6 +422,7 @@ const Mutations = new GraphQLObjectType({
         //   key: "id",
         //   equals: userId,
         // });
+        throw ctx.fastify.httpErrors.badRequest();
         const [user, unsub] = (await ctx.userLoader.loadMany([
           userId,
           unsubId,
