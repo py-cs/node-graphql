@@ -2,9 +2,9 @@ import DataLoader = require("dataloader");
 import DB from "../../utils/DB/DB";
 import DBEntity from "../../utils/DB/entities/DBEntity";
 import { MemberTypeEntity } from "../../utils/DB/entities/DBMemberTypes";
-import { PostEntity } from "../../utils/DB/entities/DBPosts";
+import DBPosts, { PostEntity } from "../../utils/DB/entities/DBPosts";
 import { ProfileEntity } from "../../utils/DB/entities/DBProfiles";
-import { UserEntity } from "../../utils/DB/entities/DBUsers";
+import DBUsers, { UserEntity } from "../../utils/DB/entities/DBUsers";
 
 function createLoader<
   T extends MemberTypeEntity | UserEntity | ProfileEntity | PostEntity
@@ -16,7 +16,7 @@ function createLoader<
     } as any);
 
     const resultsMap = results.reduce((acc, item: T) => {
-      acc.set(item.id, item);
+      acc.set(item[key] as string, item);
       return acc;
     }, new Map<string, T>());
 
@@ -24,6 +24,24 @@ function createLoader<
   };
 
   return new DataLoader(batchFn);
+}
+
+function createPostsByAuthorIdLoader(postsDB: DBPosts) {
+  return new DataLoader(async (authorIds: Readonly<string[]>) => {
+    const allPosts = await postsDB.findMany();
+    return authorIds.map((authorId) =>
+      allPosts.filter((post) => post.userId === authorId)
+    );
+  });
+}
+
+function createSubscriptionsByUserIdLoader(usersDB: DBUsers) {
+  return new DataLoader(async (userIds: Readonly<string[]>) => {
+    const allUsers = await usersDB.findMany();
+    return userIds.map((userId) =>
+      allUsers.filter((user) => user.subscribedToUserIds.includes(userId))
+    );
+  });
 }
 
 export function getLoaders(db: DB) {
@@ -34,6 +52,8 @@ export function getLoaders(db: DB) {
   const userLoader = createLoader<UserEntity>(users, "id");
   const profileLoader = createLoader<ProfileEntity>(profiles, "id");
   const profileByUserIdLoader = createLoader<ProfileEntity>(profiles, "userId");
+  const postsByAuthorIdLoader = createPostsByAuthorIdLoader(posts);
+  const subscriptionsByUserIdLoader = createSubscriptionsByUserIdLoader(users);
 
   return {
     memberTypeLoader,
@@ -41,5 +61,7 @@ export function getLoaders(db: DB) {
     userLoader,
     profileLoader,
     profileByUserIdLoader,
+    postsByAuthorIdLoader,
+    subscriptionsByUserIdLoader,
   };
 }

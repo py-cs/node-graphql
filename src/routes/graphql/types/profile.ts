@@ -11,7 +11,7 @@ import { MemberType } from "./memberType";
 import { UserType } from "./user";
 import { GraphQLUUID } from "./uuid";
 
-export const ProfileType: GraphQLObjectType = new GraphQLObjectType({
+export const ProfileType = new GraphQLObjectType<ProfileEntity, Context>({
   name: "Profile",
   fields: () => ({
     id: { type: GraphQLUUID },
@@ -21,10 +21,15 @@ export const ProfileType: GraphQLObjectType = new GraphQLObjectType({
     country: { type: new GraphQLNonNull(GraphQLString) },
     street: { type: new GraphQLNonNull(GraphQLString) },
     city: { type: new GraphQLNonNull(GraphQLString) },
-    user: { type: new GraphQLNonNull(UserType) },
+    user: {
+      type: new GraphQLNonNull(UserType),
+      resolve: async (profile, _args, ctx) => {
+        return ctx.userLoader.load(profile.userId);
+      },
+    },
     memberType: {
       type: new GraphQLNonNull(MemberType),
-      resolve: async (profile: ProfileEntity, _args, ctx: Context) => {
+      resolve: async (profile, _args, ctx) => {
         return ctx.memberTypeLoader.load(profile.memberTypeId);
       },
     },
@@ -56,7 +61,6 @@ export const UpdateProfileType: GraphQLInputObjectType =
       country: { type: GraphQLString },
       street: { type: GraphQLString },
       city: { type: GraphQLString },
-      userId: { type: GraphQLUUID },
       memberTypeId: { type: GraphQLString },
     }),
   });

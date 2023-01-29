@@ -1,7 +1,7 @@
 import { FastifyPluginAsyncJsonSchemaToTs } from "@fastify/type-provider-json-schema-to-ts";
 import { graphql, parse, validate } from "graphql";
-import depthLimit = require("graphql-depth-limit");
-import { GraphQLID, GraphQLSchema } from "graphql/type";
+import * as depthLimit from "graphql-depth-limit";
+import { GraphQLSchema } from "graphql/type";
 import { getLoaders } from "./loaders";
 import { Mutations } from "./mutation";
 import { RootQuery } from "./query";
@@ -16,6 +16,8 @@ import {
 } from "./types/profile";
 import { UserType, CreateUserType, UpdateUserType } from "./types/user";
 
+const DEPTH_LIMIT = 5;
+
 const plugin: FastifyPluginAsyncJsonSchemaToTs = async (
   fastify
 ): Promise<void> => {
@@ -26,29 +28,32 @@ const plugin: FastifyPluginAsyncJsonSchemaToTs = async (
         body: graphqlBodySchema,
       },
     },
-    async function (request) {
-      const { query, mutation, variables } = request.body;
-      const source: string | null = query || mutation || null;
+    async function (request, responce) {
+      const { query: source, variables: variableValues } = request.body;
 
       if (!source) throw this.httpErrors.badRequest();
 
-      const validationResult = validate(schema, parse(source), [depthLimit(5)]);
+      const validationResult = validate(schema, parse(source), [
+        depthLimit(DEPTH_LIMIT),
+      ]);
 
-      if (validationResult.length) throw validationResult;
+      if (validationResult.length) {
+        responce.send({ errors: validationResult });
+      } else {
+        const { db } = fastify;
 
-      const { db } = fastify;
+        const contextValue: Context = {
+          db,
+          ...getLoaders(fastify.db),
+        };
 
-      const contextValue: Context = {
-        db,
-        ...getLoaders(fastify.db),
-      };
-
-      return graphql({
-        schema,
-        source,
-        variableValues: variables,
-        contextValue,
-      });
+        return graphql({
+          schema,
+          source,
+          variableValues,
+          contextValue,
+        });
+      }
     }
   );
 };
@@ -70,6 +75,5 @@ export const schema = new GraphQLSchema({
     UpdateUserType,
     UpdatePostType,
     UpdateProfileType,
-    GraphQLID,
   ],
 });

@@ -9,7 +9,7 @@ import { Context } from "./context";
 import { UserType } from "./user";
 import { GraphQLUUID } from "./uuid";
 
-export const PostType: GraphQLObjectType = new GraphQLObjectType({
+export const PostType = new GraphQLObjectType<PostEntity, Context>({
   name: "Post",
   fields: () => ({
     id: { type: GraphQLUUID },
@@ -17,7 +17,7 @@ export const PostType: GraphQLObjectType = new GraphQLObjectType({
     content: { type: new GraphQLNonNull(GraphQLString) },
     author: {
       type: new GraphQLNonNull(UserType),
-      resolve: (post: PostEntity, _args, ctx: Context) => {
+      resolve: (post, _args, ctx) => {
         return ctx.userLoader.load(post.userId);
       },
     },

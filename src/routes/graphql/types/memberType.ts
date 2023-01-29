@@ -6,8 +6,9 @@ import {
   GraphQLInt,
   GraphQLInputObjectType,
 } from "graphql";
+import { MemberTypeEntity } from "../../../utils/DB/entities/DBMemberTypes";
 
-export const MemberType: GraphQLObjectType = new GraphQLObjectType({
+export const MemberType = new GraphQLObjectType<MemberTypeEntity>({
   name: "MemberType",
   fields: () => ({
     id: { type: GraphQLString },
