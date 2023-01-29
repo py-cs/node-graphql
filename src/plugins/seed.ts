@@ -5,9 +5,9 @@ import { ProfileEntity } from "../utils/DB/entities/DBProfiles";
 import { UserEntity } from "../utils/DB/entities/DBUsers";
 
 const config = {
-  users: 10,
-  maxPostsPerUser: 6,
-  subscriptions: 30,
+  users: 10, // Number of users with profiles to create
+  maxPostsPerUser: 6, // Max number of posts for each user (random value from 1 to this limit)
+  subscriptions: 30, // Total number of random subscriptions
 };
 
 export default fp(async (fastify): Promise<void> => {
