@@ -1,4 +1,5 @@
 import { GraphQLObjectType, GraphQLList, GraphQLString } from "graphql";
+import { Entities, entityNotFoundMessage } from "./errors";
 import { Context } from "./types/context";
 import { MemberType } from "./types/memberType";
 import { PostType } from "./types/post";
@@ -20,8 +21,11 @@ export const RootQuery = new GraphQLObjectType<unknown, Context>({
       args: {
         id: { type: GraphQLString },
       },
-      resolve: (_obj, args: { id: string }, ctx) => {
-        return ctx.memberTypeLoader.load(args.id);
+      resolve: async (_obj, args: { id: string }, ctx) => {
+        const memberType = await ctx.memberTypeLoader.load(args.id);
+        if (!memberType)
+          throw new Error(entityNotFoundMessage(Entities.MEMBER_TYPE, args.id));
+        return memberType;
       },
     },
     users: {
@@ -35,8 +39,11 @@ export const RootQuery = new GraphQLObjectType<unknown, Context>({
       args: {
         id: { type: GraphQLUUID },
       },
-      resolve: (_obj, args: { id: string }, ctx) => {
-        return ctx.userLoader.load(args.id);
+      resolve: async (_obj, args: { id: string }, ctx) => {
+        const user = await ctx.userLoader.load(args.id);
+        if (!user)
+          throw new Error(entityNotFoundMessage(Entities.USER, args.id));
+        return user;
       },
     },
     posts: {
@@ -50,8 +57,11 @@ export const RootQuery = new GraphQLObjectType<unknown, Context>({
       args: {
         id: { type: GraphQLUUID },
       },
-      resolve: (_obj, args: { id: string }, ctx) => {
-        return ctx.postLoader.load(args.id);
+      resolve: async (_obj, args: { id: string }, ctx) => {
+        const post = await ctx.postLoader.load(args.id);
+        if (!post)
+          throw new Error(entityNotFoundMessage(Entities.POST, args.id));
+        return post;
       },
     },
     profiles: {
@@ -65,8 +75,11 @@ export const RootQuery = new GraphQLObjectType<unknown, Context>({
       args: {
         id: { type: GraphQLUUID },
       },
-      resolve: (_obj, args: { id: string }, ctx) => {
-        return ctx.profileLoader.load(args.id);
+      resolve: async (_obj, args: { id: string }, ctx) => {
+        const profile = await ctx.profileLoader.load(args.id);
+        if (!profile)
+          throw new Error(entityNotFoundMessage(Entities.PROFILE, args.id));
+        return profile;
       },
     },
   },
