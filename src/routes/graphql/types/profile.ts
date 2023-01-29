@@ -2,8 +2,8 @@ import {
   GraphQLObjectType,
   GraphQLNonNull,
   GraphQLString,
-  GraphQLInt,
   GraphQLInputObjectType,
+  GraphQLFloat,
 } from "graphql";
 import { ProfileEntity } from "../../../utils/DB/entities/DBProfiles";
 import { Context } from "./context";
@@ -17,10 +17,11 @@ export const ProfileType = new GraphQLObjectType<ProfileEntity, Context>({
     id: { type: GraphQLUUID },
     avatar: { type: new GraphQLNonNull(GraphQLString) },
     sex: { type: new GraphQLNonNull(GraphQLString) },
-    birthday: { type: new GraphQLNonNull(GraphQLInt) },
+    birthday: { type: new GraphQLNonNull(GraphQLFloat) },
     country: { type: new GraphQLNonNull(GraphQLString) },
     street: { type: new GraphQLNonNull(GraphQLString) },
     city: { type: new GraphQLNonNull(GraphQLString) },
+    userId: { type: new GraphQLNonNull(GraphQLUUID) },
     user: {
       type: new GraphQLNonNull(UserType),
       resolve: async (profile, _args, ctx) => {
@@ -42,7 +43,7 @@ export const CreateProfileType: GraphQLInputObjectType =
     fields: () => ({
       avatar: { type: new GraphQLNonNull(GraphQLString) },
       sex: { type: new GraphQLNonNull(GraphQLString) },
-      birthday: { type: new GraphQLNonNull(GraphQLInt) },
+      birthday: { type: new GraphQLNonNull(GraphQLFloat) },
       country: { type: new GraphQLNonNull(GraphQLString) },
       street: { type: new GraphQLNonNull(GraphQLString) },
       city: { type: new GraphQLNonNull(GraphQLString) },
@@ -57,7 +58,7 @@ export const UpdateProfileType: GraphQLInputObjectType =
     fields: () => ({
       avatar: { type: GraphQLString },
       sex: { type: GraphQLString },
-      birthday: { type: GraphQLInt },
+      birthday: { type: GraphQLFloat },
       country: { type: GraphQLString },
       street: { type: GraphQLString },
       city: { type: GraphQLString },

@@ -19,6 +19,9 @@ export const UserType: GraphQLObjectType<UserEntity, Context> =
       firstName: { type: new GraphQLNonNull(GraphQLString) },
       lastName: { type: new GraphQLNonNull(GraphQLString) },
       email: { type: new GraphQLNonNull(GraphQLString) },
+      subscribedToUserIds: {
+        type: new GraphQLNonNull(new GraphQLList(GraphQLString)),
+      },
       profile: {
         type: ProfileType,
         resolve: (user, _args, ctx) => {
@@ -28,20 +31,12 @@ export const UserType: GraphQLObjectType<UserEntity, Context> =
       posts: {
         type: new GraphQLList(PostType),
         resolve: async (user, _args, ctx) => {
-          // return ctx.db.posts.findMany({
-          //   key: "userId",
-          //   equals: user.id,
-          // });
           return await ctx.postsByAuthorIdLoader.load(user.id);
         },
       },
       userSubscribedTo: {
         type: new GraphQLList(UserType),
         resolve: async (user, _args, ctx) => {
-          // return ctx.db.users.findMany({
-          //   key: "subscribedToUserIds",
-          //   inArray: user.id,
-          // });
           return await ctx.subscriptionsByUserIdLoader.load(user.id);
         },
       },

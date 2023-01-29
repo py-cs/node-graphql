@@ -15,6 +15,7 @@ export const PostType = new GraphQLObjectType<PostEntity, Context>({
     id: { type: GraphQLUUID },
     title: { type: new GraphQLNonNull(GraphQLString) },
     content: { type: new GraphQLNonNull(GraphQLString) },
+    userId: { type: new GraphQLNonNull(GraphQLUUID) },
     author: {
       type: new GraphQLNonNull(UserType),
       resolve: (post, _args, ctx) => {

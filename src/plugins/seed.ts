@@ -4,6 +4,12 @@ import { PostEntity } from "../utils/DB/entities/DBPosts";
 import { ProfileEntity } from "../utils/DB/entities/DBProfiles";
 import { UserEntity } from "../utils/DB/entities/DBUsers";
 
+const config = {
+  users: 10,
+  maxPostsPerUser: 6,
+  subscriptions: 30,
+};
+
 export default fp(async (fastify): Promise<void> => {
   const { db } = fastify;
   seed(db);
@@ -11,7 +17,7 @@ export default fp(async (fastify): Promise<void> => {
 
 function getRandomItem<T>(arr: T[]): T {
   const { length } = arr;
-  const index = Math.round(Math.random() * (length - 1));
+  const index = Math.trunc(Math.random() * length);
   return arr[index];
 }
 
@@ -24,8 +30,10 @@ function getPair<T>(arr: T[]): [T, T] {
 }
 
 export async function seed(db: DB) {
+  const { users, maxPostsPerUser, subscriptions } = config;
   const userIds: string[] = [];
-  for (let i = 0; i < 10; i++) {
+
+  for (let i = 0; i < users; i++) {
     const userDTO: Omit<UserEntity, "id" | "subscribedToUserIds"> = {
       firstName: `User ${i}`,
       lastName: `Last ${i}`,
@@ -46,7 +54,7 @@ export async function seed(db: DB) {
     };
     await db.profiles.create(profileDTO);
 
-    for (let j = 0; j < 1 + Math.random() * 6; j++) {
+    for (let j = 0; j < 1 + Math.random() * maxPostsPerUser; j++) {
       const postDTO: Omit<PostEntity, "id"> = {
         title: `post #${i * 10 + j}`,
         content: "lorem ipsum dolor est",
@@ -56,15 +64,27 @@ export async function seed(db: DB) {
     }
   }
 
-  for (let i = 1; i < 30; i++) {
-    const idsPair = getPair(userIds);
+  for (let i = 0; i < subscriptions; i++) {
+    while (true) {
+      const idsPair = getPair(userIds);
+      console.log(idsPair);
 
-    const [user, subscriber] = await db.users.findMany({
-      key: "id",
-      equalsAnyOf: idsPair,
-    });
-    await db.users.change(user.id, {
-      subscribedToUserIds: [...user.subscribedToUserIds, subscriber.id],
-    });
+      let [user, subscriber] = await db.users.findMany({
+        key: "id",
+        equalsAnyOf: idsPair,
+      });
+
+      if (Math.random() > 0.5) {
+        [user, subscriber] = [subscriber, user];
+      }
+
+      if (user.subscribedToUserIds.includes(subscriber.id)) continue;
+
+      await db.users.change(user.id, {
+        subscribedToUserIds: [...user.subscribedToUserIds, subscriber.id],
+      });
+
+      break;
+    }
   }
 }
