@@ -1,5 +1,6 @@
 import { GraphQLObjectType, GraphQLNonNull, GraphQLString } from "graphql";
 import { Entities, entityNotFoundMessage, Errors } from "./errors";
+import { filterDTO } from "./filterDTO";
 import { Context } from "./types/context";
 import { MemberType, UpdateMemberType } from "./types/memberType";
 import { PostType, CreatePostType, UpdatePostType } from "./types/post";
@@ -75,7 +76,7 @@ export const Mutations = new GraphQLObjectType({
         try {
           const updated = await ctx.db.memberTypes.change(
             args.id,
-            args.updateMemberTypeDTO
+            filterDTO(args.updateMemberTypeDTO)
           );
           return updated;
         } catch {
@@ -91,7 +92,10 @@ export const Mutations = new GraphQLObjectType({
       },
       async resolve(_, args, ctx: Context) {
         try {
-          return await ctx.db.posts.change(args.id, args.updatePostDTO);
+          return await ctx.db.posts.change(
+            args.id,
+            filterDTO(args.updatePostDTO)
+          );
         } catch {
           throw new Error(entityNotFoundMessage(Entities.POST, args.id));
         }
@@ -115,7 +119,10 @@ export const Mutations = new GraphQLObjectType({
         }
 
         try {
-          return await ctx.db.profiles.change(args.id, args.updateProfileDTO);
+          return await ctx.db.profiles.change(
+            args.id,
+            filterDTO(args.updateProfileDTO)
+          );
         } catch {
           throw new Error(entityNotFoundMessage(Entities.PROFILE, args.id));
         }
@@ -129,7 +136,10 @@ export const Mutations = new GraphQLObjectType({
       },
       async resolve(_, args, ctx: Context) {
         try {
-          return await ctx.db.users.change(args.id, args.updateUserDTO);
+          return await ctx.db.users.change(
+            args.id,
+            filterDTO(args.updateUserDTO)
+          );
         } catch {
           throw new Error(entityNotFoundMessage(Entities.USER, args.id));
         }

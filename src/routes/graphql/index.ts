@@ -16,7 +16,7 @@ import {
 } from "./types/profile";
 import { UserType, CreateUserType, UpdateUserType } from "./types/user";
 
-const DEPTH_LIMIT = 5;
+const DEPTH_LIMIT = 6;
 
 const plugin: FastifyPluginAsyncJsonSchemaToTs = async (
   fastify
