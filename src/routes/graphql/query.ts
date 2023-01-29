@@ -6,12 +6,12 @@ import { ProfileType } from "./types/profile";
 import { UserType } from "./types/user";
 import { GraphQLUUID } from "./types/uuid";
 
-export const RootQuery = new GraphQLObjectType({
+export const RootQuery = new GraphQLObjectType<unknown, Context>({
   name: "RootQueryType",
   fields: {
     memberTypes: {
       type: new GraphQLList(MemberType),
-      resolve: (_obj, _args, ctx: Context) => {
+      resolve: (_obj, _args, ctx) => {
         return ctx.db.memberTypes.findMany();
       },
     },
@@ -20,13 +20,13 @@ export const RootQuery = new GraphQLObjectType({
       args: {
         id: { type: GraphQLString },
       },
-      resolve: (_obj, args, ctx: Context) => {
+      resolve: (_obj, args: { id: string }, ctx) => {
         return ctx.memberTypeLoader.load(args.id);
       },
     },
     users: {
       type: new GraphQLList(UserType),
-      resolve: (_obj, _args, ctx: Context) => {
+      resolve: (_obj, _args, ctx) => {
         return ctx.db.users.findMany();
       },
     },
@@ -35,13 +35,13 @@ export const RootQuery = new GraphQLObjectType({
       args: {
         id: { type: GraphQLUUID },
       },
-      resolve: (_obj, args, ctx: Context) => {
+      resolve: (_obj, args: { id: string }, ctx) => {
         return ctx.userLoader.load(args.id);
       },
     },
     posts: {
       type: new GraphQLList(PostType),
-      resolve: (_obj, _args, ctx: Context) => {
+      resolve: (_obj, _args, ctx) => {
         return ctx.db.posts.findMany();
       },
     },
@@ -50,13 +50,13 @@ export const RootQuery = new GraphQLObjectType({
       args: {
         id: { type: GraphQLUUID },
       },
-      resolve: (_obj, args, ctx: Context) => {
+      resolve: (_obj, args: { id: string }, ctx) => {
         return ctx.postLoader.load(args.id);
       },
     },
     profiles: {
       type: new GraphQLList(ProfileType),
-      resolve: (_obj, _args, ctx: Context) => {
+      resolve: (_obj, _args, ctx) => {
         return ctx.db.profiles.findMany();
       },
     },
@@ -65,7 +65,7 @@ export const RootQuery = new GraphQLObjectType({
       args: {
         id: { type: GraphQLUUID },
       },
-      resolve: (_obj, args, ctx: Context) => {
+      resolve: (_obj, args: { id: string }, ctx) => {
         return ctx.profileLoader.load(args.id);
       },
     },
