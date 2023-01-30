@@ -12,8 +12,12 @@ export const RootQuery = new GraphQLObjectType<unknown, Context>({
   fields: {
     memberTypes: {
       type: new GraphQLList(MemberType),
-      resolve: (_obj, _args, ctx) => {
-        return ctx.db.memberTypes.findMany();
+      resolve: async (_obj, _args, ctx) => {
+        const memberTypes = await ctx.db.memberTypes.findMany();
+        memberTypes.forEach((type) =>
+          ctx.memberTypeLoader.prime(type.id, type)
+        );
+        return memberTypes;
       },
     },
     memberType: {
@@ -30,8 +34,16 @@ export const RootQuery = new GraphQLObjectType<unknown, Context>({
     },
     users: {
       type: new GraphQLList(UserType),
-      resolve: (_obj, _args, ctx) => {
-        return ctx.db.users.findMany();
+      resolve: async (_obj, _args, ctx) => {
+        const users = await ctx.db.users.findMany();
+        users.forEach((user) => {
+          ctx.userLoader.prime(user.id, user);
+          ctx.subscriptionsByUserIdLoader.prime(
+            user.id,
+            users.filter((u) => u.subscribedToUserIds.includes(user.id))
+          );
+        });
+        return users;
       },
     },
     user: {
@@ -48,8 +60,10 @@ export const RootQuery = new GraphQLObjectType<unknown, Context>({
     },
     posts: {
       type: new GraphQLList(PostType),
-      resolve: (_obj, _args, ctx) => {
-        return ctx.db.posts.findMany();
+      resolve: async (_obj, _args, ctx) => {
+        const posts = await ctx.db.posts.findMany();
+        posts.forEach((post) => ctx.postLoader.prime(post.id, post));
+        return posts;
       },
     },
     post: {
@@ -66,8 +80,12 @@ export const RootQuery = new GraphQLObjectType<unknown, Context>({
     },
     profiles: {
       type: new GraphQLList(ProfileType),
-      resolve: (_obj, _args, ctx) => {
-        return ctx.db.profiles.findMany();
+      resolve: async (_obj, _args, ctx) => {
+        const profiles = await ctx.db.profiles.findMany();
+        profiles.forEach((profile) =>
+          ctx.profileLoader.prime(profile.id, profile)
+        );
+        return profiles;
       },
     },
     profile: {
