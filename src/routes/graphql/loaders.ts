@@ -35,13 +35,24 @@ function createPostsByAuthorIdLoader(postsDB: DBPosts) {
   });
 }
 
-function createSubscriptionsByUserIdLoader(usersDB: DBUsers) {
-  return new DataLoader(async (userIds: Readonly<string[]>) => {
-    const allUsers = await usersDB.findMany();
-    return userIds.map((userId) =>
-      allUsers.filter((user) => user.subscribedToUserIds.includes(userId))
-    );
+function createUserLoaders(usersDB: DBUsers) {
+  const allUsersPromise = usersDB.findMany();
+
+  const subscriptionsByUserIdLoader = new DataLoader(
+    async (userIds: Readonly<string[]>) => {
+      const allUsers = await allUsersPromise;
+      return userIds.map((userId) =>
+        allUsers.filter((user) => user.subscribedToUserIds.includes(userId))
+      );
+    }
+  );
+
+  const userLoader = new DataLoader(async (userIds: Readonly<string[]>) => {
+    const allUsers = await allUsersPromise;
+    return userIds.map((userId) => allUsers.find((user) => user.id === userId));
   });
+
+  return { subscriptionsByUserIdLoader, userLoader };
 }
 
 export function getLoaders(db: DB) {
@@ -49,11 +60,10 @@ export function getLoaders(db: DB) {
 
   const memberTypeLoader = createLoader<MemberTypeEntity>(memberTypes, "id");
   const postLoader = createLoader<PostEntity>(posts, "id");
-  const userLoader = createLoader<UserEntity>(users, "id");
   const profileLoader = createLoader<ProfileEntity>(profiles, "id");
   const profileByUserIdLoader = createLoader<ProfileEntity>(profiles, "userId");
   const postsByAuthorIdLoader = createPostsByAuthorIdLoader(posts);
-  const subscriptionsByUserIdLoader = createSubscriptionsByUserIdLoader(users);
+  const { subscriptionsByUserIdLoader, userLoader } = createUserLoaders(users);
 
   return {
     memberTypeLoader,
