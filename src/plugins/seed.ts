@@ -67,7 +67,6 @@ export async function seed(db: DB) {
   for (let i = 0; i < subscriptions; i++) {
     while (true) {
       const idsPair = getPair(userIds);
-      console.log(idsPair);
 
       let [user, subscriber] = await db.users.findMany({
         key: "id",
