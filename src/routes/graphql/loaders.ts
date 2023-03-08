@@ -23,7 +23,10 @@ function createLoader<
 }
 function createPostsByAuthorIdLoader(postsDB: DBPosts) {
   return new DataLoader(async (authorIds: Readonly<string[]>) => {
-    const allPosts = await postsDB.findMany();
+    const allPosts = await postsDB.findMany({
+      key: "userId",
+      equalsAnyOf: authorIds,
+    } as any);
     return authorIds.map((authorId) =>
       allPosts.filter((post) => post.userId === authorId)
     );
@@ -32,7 +35,10 @@ function createPostsByAuthorIdLoader(postsDB: DBPosts) {
 
 function createSubscriptionsByUserIdLoader(usersDB: DBUsers) {
   return new DataLoader(async (userIds: Readonly<string[]>) => {
-    const allUsers = await usersDB.findMany();
+    const allUsers = await usersDB.findMany({
+      key: "subscribedToUserIds",
+      inArrayAnyOf: userIds,
+    } as any);
     return userIds.map((userId) =>
       allUsers.filter((user) => user.subscribedToUserIds.includes(userId))
     );

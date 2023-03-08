@@ -1,8 +1,8 @@
-import DBMemberTypes from './entities/DBMemberTypes';
-import DBPosts from './entities/DBPosts';
-import DBProfiles from './entities/DBProfiles';
-import DBUsers from './entities/DBUsers';
-import * as lodash from 'lodash';
+import DBMemberTypes from "./entities/DBMemberTypes";
+import DBPosts from "./entities/DBPosts";
+import DBProfiles from "./entities/DBProfiles";
+import DBUsers from "./entities/DBUsers";
+import * as lodash from "lodash";
 
 export default class DB {
   users = new DBUsers();
@@ -13,7 +13,8 @@ export default class DB {
   constructor() {
     const deepCopyResultTrap: ProxyHandler<any> = {
       get: (target, prop) => {
-        if (typeof target[prop] === 'function') {
+        console.log("----------------------", prop);
+        if (typeof target[prop] === "function") {
           return (...args: any[]) => {
             const result = target[prop](...args);
             if (result instanceof Promise) {
